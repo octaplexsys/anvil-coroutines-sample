@@ -1,7 +1,6 @@
 package adeln.coroutines
 
 import android.content.Context
-import android.util.Log
 import trikita.anvil.Anvil
 import trikita.anvil.RenderableView
 import kotlin.properties.ReadWriteProperty
@@ -14,7 +13,6 @@ class RenderProp<T>(var t: T) : ReadWriteProperty<Any?, T> {
 
     override fun setValue(thisRef: Any?, property: KProperty<*>, value: T) {
         t = value
-        Log.d("coroutine", "render!")
         Anvil.render()
     }
 }

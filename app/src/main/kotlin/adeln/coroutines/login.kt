@@ -1,11 +1,16 @@
 package adeln.coroutines
 
 import android.widget.LinearLayout
-import trikita.anvil.Anvil
 import trikita.anvil.BaseDSL.onTextChanged
 import trikita.anvil.DSL.*
 import trikita.anvil.design.DesignDSL.*
 import trikita.anvil.design.DesignDSL.error as designError
+
+sealed class RemoteData<out T>
+object NotCalled : RemoteData<Nothing>()
+object Loading : RemoteData<Nothing>()
+data class Success<out T>(val t: T) : RemoteData<T>()
+data class Failure(val e: Throwable) : RemoteData<Nothing>()
 
 enum class LoginError {
     EMPTY_LOGIN,
@@ -15,12 +20,17 @@ enum class LoginError {
 
 class LoginState {
     var login: CharSequence = ""
+    var loginError: CharSequence? = null
+
     var password: CharSequence = ""
-    var wrong by RenderProp(false)
+    var passwordError: CharSequence? = null
+
+    var remote: RemoteData<Unit> by RenderProp(NotCalled)
 }
 
 fun validate(s: LoginState): Set<LoginError> =
         mutableSetOf<LoginError>().also {
+
             if (s.login.isEmpty()) {
                 it += LoginError.EMPTY_LOGIN
             }
@@ -29,7 +39,7 @@ fun validate(s: LoginState): Set<LoginError> =
                 it += LoginError.EMPTY_PASSWORD
             }
 
-            if (s.wrong) {
+            if (s.remote is Failure) {
                 it += LoginError.WRONG_CREDENTIALS
             }
         }
@@ -41,41 +51,58 @@ fun loginError(errors: Set<LoginError>): String? =
             else                                   -> null
         }
 
+fun passwordError(errors: Set<LoginError>): String? =
+        when {
+            LoginError.EMPTY_PASSWORD in errors    -> "Введи пароль"
+            LoginError.WRONG_CREDENTIALS in errors -> "Неверный логин или пароль"
+            else                                   -> null
+        }
+
 fun loginView(state: LoginState): Void? =
         linearLayout {
             size(MATCH, MATCH)
             orientation(LinearLayout.VERTICAL)
 
-            val errors = validate(state)
+            val notLoading = state.remote !is Loading
 
             textInputLayout {
-
                 textInputEditText {
                     text(state.login)
+                    enabled(notLoading)
 
                     onTextChanged {
                         state.login = it
                     }
                 }
 
-                loginError(errors)?.let { designError(it) }
+                designError(state.loginError)
             }
 
             textInputLayout {
                 textInputEditText {
                     text(state.password)
+                    enabled(notLoading)
 
                     onTextChanged {
                         state.password = it
                     }
                 }
 
-                loginError(errors)?.let { designError(it) }
+                designError(state.passwordError)
             }
 
             button {
+                enabled(notLoading)
+
                 onClick {
-                    Anvil.render()
+                    val errors = validate(state)
+
+                    state.loginError = loginError(errors)
+                    state.passwordError = passwordError(errors)
+
+                    if (errors.isEmpty()) {
+                        state.remote = Loading
+                    }
                 }
             }
         }

@@ -11,9 +11,11 @@ class MainActivity : Activity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
+        val state = LoginState()
+
         setContentView(
                 renderableView {
-                    loginView(LoginState())
+                    loginView(state)
                 }
         )
     }
