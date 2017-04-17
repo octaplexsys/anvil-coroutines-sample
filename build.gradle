@@ -1,0 +1,22 @@
+buildscript {
+    apply from: "constants.gradle"
+
+    repositories {
+        jcenter()
+    }
+
+    dependencies {
+        classpath "com.android.tools.build:gradle:$versions.android"
+        classpath kotlinArtifacts.plugin
+    }
+}
+
+allprojects {
+    repositories {
+        jcenter()
+    }
+}
+
+task clean(type: Delete) {
+    delete rootProject.buildDir
+}
