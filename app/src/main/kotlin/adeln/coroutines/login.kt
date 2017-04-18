@@ -1,16 +1,27 @@
 package adeln.coroutines
 
 import android.widget.LinearLayout
-import trikita.anvil.BaseDSL.onTextChanged
-import trikita.anvil.DSL.*
-import trikita.anvil.design.DesignDSL.*
-import trikita.anvil.design.DesignDSL.error as designError
+import com.squareup.moshi.Moshi
+import kotlinx.coroutines.experimental.android.UI
+import kotlinx.coroutines.experimental.async
+import trikita.anvil.DSL.MATCH
+import trikita.anvil.DSL.WRAP
+import trikita.anvil.DSL.button
+import trikita.anvil.DSL.enabled
+import trikita.anvil.DSL.linearLayout
+import trikita.anvil.DSL.onClick
+import trikita.anvil.DSL.onTextChanged
+import trikita.anvil.DSL.orientation
+import trikita.anvil.DSL.size
+import trikita.anvil.DSL.text
+import trikita.anvil.design.DesignDSL.error
+import trikita.anvil.design.DesignDSL.textInputLayout
 
-sealed class RemoteData<out T>
-object NotCalled : RemoteData<Nothing>()
-object Loading : RemoteData<Nothing>()
-data class Success<out T>(val t: T) : RemoteData<T>()
-data class Failure(val e: Throwable) : RemoteData<Nothing>()
+sealed class RemoteData<out T, out E>
+object NotCalled : RemoteData<Nothing, Nothing>()
+object Loading : RemoteData<Nothing, Nothing>()
+data class Success<out T>(val t: T) : RemoteData<T, Nothing>()
+data class Failure<out E>(val e: E) : RemoteData<Nothing, E>()
 
 enum class LoginError {
     EMPTY_LOGIN,
@@ -25,7 +36,7 @@ class LoginState {
     var password: CharSequence = ""
     var passwordError: CharSequence? = null
 
-    var remote: RemoteData<Unit> by RenderProp(NotCalled)
+    var remote: RemoteData<Login, Error> by RenderProp(NotCalled)
 }
 
 fun validate(s: LoginState): Set<LoginError> =
@@ -66,33 +77,38 @@ fun loginView(state: LoginState): Void? =
             val notLoading = state.remote !is Loading
 
             textInputLayout {
-                textInputEditText {
-                    text(state.login)
+                size(MATCH, WRAP)
+                error(state.loginError)
+
+                textInputEditHack(123) {
+                    size(MATCH, WRAP)
                     enabled(notLoading)
 
                     onTextChanged {
                         state.login = it
+                        state.remote = NotCalled
                     }
                 }
-
-                designError(state.loginError)
             }
 
             textInputLayout {
-                textInputEditText {
-                    text(state.password)
+                size(MATCH, WRAP)
+                error(state.passwordError)
+
+                textInputEditHack(1234) {
+                    size(MATCH, WRAP)
                     enabled(notLoading)
 
                     onTextChanged {
                         state.password = it
+                        state.remote = NotCalled
                     }
                 }
-
-                designError(state.passwordError)
             }
 
             button {
                 enabled(notLoading)
+                text("go")
 
                 onClick {
                     val errors = validate(state)
@@ -102,6 +118,25 @@ fun loginView(state: LoginState): Void? =
 
                     if (errors.isEmpty()) {
                         state.remote = Loading
+
+                        val client = mkClient()
+                        val moshi = Moshi.Builder().build()
+
+                        val creds = Credentials(state.login.toString(),
+                                                state.password.toString())
+
+                        async(UI) {
+                            try {
+                                state.remote = client.newCall(loginRequest(moshi, creds)).await()
+                                        .use { r ->
+                                            Success(moshi.fromJson<Login>(r.body().source()))
+                                        }
+                            } catch (e: Exception) {
+                                if (e is HttpException) {
+                                    state.remote = e.resp.use { Failure(moshi.fromJson(it.body().source())) }
+                                } else Unit
+                            }
+                        }
                     }
                 }
             }

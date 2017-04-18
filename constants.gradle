@@ -22,7 +22,7 @@ ext {
             leakCanary            : "1.5",
             materialdatetimepicker: "2.3.0",
             nimbledroid           : "1.0.8",
-            okHttp                : "3.6.0",
+            okHttp                : "3.7.0",
             okio                  : "1.11.0",
             playServices          : "10.2.1",
             realm                 : "0.88.3",
@@ -35,7 +35,7 @@ ext {
             sqlBrite              : "1.1.1",
             stetho                : "1.3.1",
 
-            support               : "25.+",
+            support               : "25.3.1",
 
             supportTest           : "0.5",
             timber                : "4.5.1",
@@ -56,11 +56,15 @@ ext {
             phoenix               : "2.0.0",
             gorenieLib            : "0.3.6",
             anvil                 : "0.5.1",
+            moshi                 : "1.4.0",
+            coroutines            : "0.14.1",
     ]
 
     kotlinArtifacts = [
-            plugin: "org.jetbrains.kotlin:kotlin-gradle-plugin:$versions.kotlin",
-            stdlib: "org.jetbrains.kotlin:kotlin-stdlib:$versions.kotlin",
+            plugin           : "org.jetbrains.kotlin:kotlin-gradle-plugin:$versions.kotlin",
+            stdlib           : "org.jetbrains.kotlin:kotlin-stdlib:$versions.kotlin",
+            coroutinesCore   : "org.jetbrains.kotlinx:kotlinx-coroutines-core:$versions.coroutines",
+            coroutinesAndroid: "org.jetbrains.kotlinx:kotlinx-coroutines-android:$versions.coroutines",
     ]
 
     support = [
