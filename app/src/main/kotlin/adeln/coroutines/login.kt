@@ -1,7 +1,6 @@
 package adeln.coroutines
 
 import android.widget.LinearLayout
-import com.squareup.moshi.Moshi
 import kotlinx.coroutines.experimental.android.UI
 import kotlinx.coroutines.experimental.async
 import trikita.anvil.DSL.MATCH
@@ -17,11 +16,11 @@ import trikita.anvil.DSL.text
 import trikita.anvil.design.DesignDSL.error
 import trikita.anvil.design.DesignDSL.textInputLayout
 
-sealed class RemoteData<out T, out E>
-object NotCalled : RemoteData<Nothing, Nothing>()
-object Loading : RemoteData<Nothing, Nothing>()
-data class Success<out T>(val t: T) : RemoteData<T, Nothing>()
-data class Failure<out E>(val e: E) : RemoteData<Nothing, E>()
+sealed class RemoteData<out T>
+object NotCalled : RemoteData<Nothing>()
+object Loading : RemoteData<Nothing>()
+data class Success<out T>(val t: T) : RemoteData<T>()
+data class Failure(val e: Exception) : RemoteData<Nothing>()
 
 enum class LoginError {
     EMPTY_LOGIN,
@@ -36,7 +35,7 @@ class LoginState {
     var password: CharSequence = ""
     var passwordError: CharSequence? = null
 
-    var remote: RemoteData<Login, Error> by RenderProp(NotCalled)
+    var remote: RemoteData<Auth> by RenderProp(NotCalled)
 }
 
 fun validate(s: LoginState): Set<LoginError> =
@@ -50,7 +49,11 @@ fun validate(s: LoginState): Set<LoginError> =
                 it += LoginError.EMPTY_PASSWORD
             }
 
-            if (s.remote is Failure) {
+            val remote = s.remote
+            if (remote is Failure
+                    && remote.e is ClientError
+                    && remote.e.error.status == 401) {
+
                 it += LoginError.WRONG_CREDENTIALS
             }
         }
@@ -68,6 +71,8 @@ fun passwordError(errors: Set<LoginError>): String? =
             LoginError.WRONG_CREDENTIALS in errors -> "Неверный логин или пароль"
             else                                   -> null
         }
+
+val MAPISSUES = mkMapissues(mkClient(), mkMoshi())
 
 fun loginView(state: LoginState): Void? =
         linearLayout {
@@ -111,33 +116,31 @@ fun loginView(state: LoginState): Void? =
                 text("go")
 
                 onClick {
-                    val errors = validate(state)
-
-                    state.loginError = loginError(errors)
-                    state.passwordError = passwordError(errors)
-
-                    if (errors.isEmpty()) {
-                        state.remote = Loading
-
-                        val client = mkClient()
-                        val moshi = Moshi.Builder().build()
-
-                        val creds = Credentials(state.login.toString(),
-                                                state.password.toString())
-
-                        async(UI) {
-                            try {
-                                state.remote = client.newCall(loginRequest(moshi, creds)).await()
-                                        .use { r ->
-                                            Success(moshi.fromJson<Login>(r.body().source()))
-                                        }
-                            } catch (e: Exception) {
-                                if (e is HttpException) {
-                                    state.remote = e.resp.use { Failure(moshi.fromJson(it.body().source())) }
-                                } else Unit
-                            }
-                        }
-                    }
+                    onLoginClick(state)
                 }
             }
         }
+
+fun onLoginClick(state: LoginState) {
+    val errors = validate(state)
+
+    state.loginError = loginError(errors)
+    state.passwordError = passwordError(errors)
+
+    if (errors.isEmpty()) {
+        state.remote = Loading
+
+        val creds = Credentials(
+                login = state.login.toString(),
+                password = state.password.toString()
+        )
+
+        async(UI) {
+            state.remote = try {
+                Success(MAPISSUES.auth(creds).await())
+            } catch (e: Exception) {
+                Failure(e)
+            }
+        }
+    }
+}

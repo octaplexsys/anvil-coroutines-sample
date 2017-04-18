@@ -1,7 +1,6 @@
 package adeln.coroutines
 
 import android.app.Activity
-import android.content.Context
 import android.os.Bundle
 
 class MainActivity : Activity() {

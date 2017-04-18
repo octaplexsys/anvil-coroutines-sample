@@ -40,6 +40,8 @@ dependencies {
     compile group: 'com.squareup.moshi', name: 'moshi', version: versions.moshi
     compile group: 'com.squareup.okhttp3', name: 'okhttp', version: versions.okHttp
     compile group: 'com.squareup.okhttp3', name: 'logging-interceptor', version: versions.okHttp
+    compile group: 'com.squareup.retrofit2', name: 'retrofit', version: versions.retrofit
+    compile group: 'com.squareup.retrofit2', name: 'converter-moshi', version: versions.retrofit
 
     compile kotlinArtifacts.coroutinesCore
     compile kotlinArtifacts.coroutinesAndroid
