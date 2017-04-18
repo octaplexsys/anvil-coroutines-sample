@@ -8,8 +8,11 @@ buildscript {
     dependencies {
         classpath "com.android.tools.build:gradle:$versions.android"
         classpath kotlinArtifacts.plugin
+        classpath "com.github.ben-manes:gradle-versions-plugin:$versions.gradleVersions"
     }
 }
+
+apply plugin: 'com.github.ben-manes.versions'
 
 allprojects {
     repositories {
