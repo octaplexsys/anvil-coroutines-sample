@@ -14,13 +14,8 @@ import trikita.anvil.DSL.orientation
 import trikita.anvil.DSL.size
 import trikita.anvil.DSL.text
 import trikita.anvil.design.DesignDSL.error
+import trikita.anvil.design.DesignDSL.hint
 import trikita.anvil.design.DesignDSL.textInputLayout
-
-sealed class RemoteData<out T>
-object NotCalled : RemoteData<Nothing>()
-object Loading : RemoteData<Nothing>()
-data class Success<out T>(val t: T) : RemoteData<T>()
-data class Failure(val e: Exception) : RemoteData<Nothing>()
 
 class LoginState {
     var login: CharSequence = ""
@@ -63,6 +58,7 @@ fun loginView(state: LoginState): Void? =
             size(MATCH, WRAP)
             error(loginError(state))
             enabled(notLoading)
+            hint("Login")
 
             textInputEditHack(123) {
                 size(MATCH, WRAP)
@@ -78,6 +74,7 @@ fun loginView(state: LoginState): Void? =
             size(MATCH, WRAP)
             error(passwordError(state))
             enabled(notLoading)
+            hint("Password")
 
             textInputEditHack(1234) {
                 size(MATCH, WRAP)
@@ -109,10 +106,8 @@ fun onLoginClick(state: LoginState) {
         )
 
         async(UI) {
-            state.remote = try {
-                Success(MAPISSUES.auth(creds).await())
-            } catch (e: Exception) {
-                Failure(e)
+            state.remote = tryRemote {
+                MAPISSUES.auth(creds).await()
             }
         }
     }
