@@ -22,117 +22,90 @@ object Loading : RemoteData<Nothing>()
 data class Success<out T>(val t: T) : RemoteData<T>()
 data class Failure(val e: Exception) : RemoteData<Nothing>()
 
-enum class LoginError {
-    EMPTY_LOGIN,
-    EMPTY_PASSWORD,
-    WRONG_CREDENTIALS,
-}
-
 class LoginState {
     var login: CharSequence = ""
-    var loginError: CharSequence? = null
-
     var password: CharSequence = ""
-    var passwordError: CharSequence? = null
-
     var remote: RemoteData<Auth> by RenderProp(NotCalled)
 }
 
-fun validate(s: LoginState): Set<LoginError> =
-        mutableSetOf<LoginError>().also {
+fun isGood(s: LoginState): Boolean =
+    s.login.isNotBlank() && s.password.isNotBlank()
 
-            if (s.login.isEmpty()) {
-                it += LoginError.EMPTY_LOGIN
-            }
+fun wrongCredentials(remote: RemoteData<Auth>): Boolean =
+    remote is Failure
+        && remote.e is ClientError
+        && remote.e.error.status == 401
 
-            if (s.password.isEmpty()) {
-                it += LoginError.EMPTY_PASSWORD
-            }
+fun loginError(state: LoginState): String? =
+    when {
+        state.login.isBlank()          -> "Введи логин"
+        wrongCredentials(state.remote) -> "Неверный логин или пароль"
+        else                           -> null
+    }
 
-            val remote = s.remote
-            if (remote is Failure
-                    && remote.e is ClientError
-                    && remote.e.error.status == 401) {
-
-                it += LoginError.WRONG_CREDENTIALS
-            }
-        }
-
-fun loginError(errors: Set<LoginError>): String? =
-        when {
-            LoginError.EMPTY_LOGIN in errors       -> "Введи логин"
-            LoginError.WRONG_CREDENTIALS in errors -> "Неверный логин или пароль"
-            else                                   -> null
-        }
-
-fun passwordError(errors: Set<LoginError>): String? =
-        when {
-            LoginError.EMPTY_PASSWORD in errors    -> "Введи пароль"
-            LoginError.WRONG_CREDENTIALS in errors -> "Неверный логин или пароль"
-            else                                   -> null
-        }
+fun passwordError(state: LoginState): String? =
+    when {
+        state.password.isBlank()       -> "Введи пароль"
+        wrongCredentials(state.remote) -> "Неверный логин или пароль"
+        else                           -> null
+    }
 
 val MAPISSUES = mkMapissues(mkClient(), mkMoshi())
 
 fun loginView(state: LoginState): Void? =
-        linearLayout {
-            size(MATCH, MATCH)
-            orientation(LinearLayout.VERTICAL)
+    linearLayout {
+        size(MATCH, MATCH)
+        orientation(LinearLayout.VERTICAL)
 
-            val notLoading = state.remote !is Loading
+        val notLoading = state.remote !is Loading
 
-            textInputLayout {
+        textInputLayout {
+            size(MATCH, WRAP)
+            error(loginError(state))
+            enabled(notLoading)
+
+            textInputEditHack(123) {
                 size(MATCH, WRAP)
-                error(state.loginError)
 
-                textInputEditHack(123) {
-                    size(MATCH, WRAP)
-                    enabled(notLoading)
-
-                    onTextChanged {
-                        state.login = it
-                        state.remote = NotCalled
-                    }
-                }
-            }
-
-            textInputLayout {
-                size(MATCH, WRAP)
-                error(state.passwordError)
-
-                textInputEditHack(1234) {
-                    size(MATCH, WRAP)
-                    enabled(notLoading)
-
-                    onTextChanged {
-                        state.password = it
-                        state.remote = NotCalled
-                    }
-                }
-            }
-
-            button {
-                enabled(notLoading)
-                text("go")
-
-                onClick {
-                    onLoginClick(state)
+                onTextChanged {
+                    state.login = it
+                    state.remote = NotCalled
                 }
             }
         }
 
+        textInputLayout {
+            size(MATCH, WRAP)
+            error(passwordError(state))
+            enabled(notLoading)
+
+            textInputEditHack(1234) {
+                size(MATCH, WRAP)
+
+                onTextChanged {
+                    state.password = it
+                    state.remote = NotCalled
+                }
+            }
+        }
+
+        button {
+            enabled(notLoading)
+            text("go")
+
+            onClick {
+                onLoginClick(state)
+            }
+        }
+    }
+
 fun onLoginClick(state: LoginState) {
-    val errors = validate(state)
-
-    state.loginError = loginError(errors)
-    state.passwordError = passwordError(errors)
-
-    if (errors.isEmpty()) {
+    if (isGood(state)) {
         state.remote = Loading
 
         val creds = Credentials(
-                login = state.login.toString(),
-                password = state.password.toString()
+            login = state.login.toString(),
+            password = state.password.toString()
         )
 
         async(UI) {

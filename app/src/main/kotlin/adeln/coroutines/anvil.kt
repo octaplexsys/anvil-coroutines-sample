@@ -16,7 +16,7 @@ import kotlin.reflect.KProperty
 class RenderProp<T>(var t: T) : ReadWriteProperty<Any?, T> {
 
     override fun getValue(thisRef: Any?, property: KProperty<*>): T =
-            t
+        t
 
     override fun setValue(thisRef: Any?, property: KProperty<*>, value: T) {
         t = value
@@ -28,10 +28,10 @@ val Context.ctx: Context
     get() = this
 
 inline fun Context.renderableView(crossinline f: () -> Unit): RenderableView =
-        object : RenderableView(ctx) {
-            override fun view(): Unit =
-                    f()
-        }
+    object : RenderableView(ctx) {
+        override fun view(): Unit =
+            f()
+    }
 
 typealias IdRes = Int
 
