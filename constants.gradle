@@ -58,6 +58,7 @@ ext {
             anvil                 : "0.5.1",
             moshi                 : "1.4.0",
             coroutines            : "0.14.1",
+            litho                 : "+",
     ]
 
     kotlinArtifacts = [

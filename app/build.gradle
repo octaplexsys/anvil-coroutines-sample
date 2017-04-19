@@ -32,10 +32,11 @@ android {
 dependencies {
     compile kotlinArtifacts.stdlib
 
-    compile "co.trikita:anvil-sdk15:$versions.anvil"
-    compile "co.trikita:anvil-design:$versions.anvil"
-
-    compile support.design
+    compile "com.facebook.litho:litho-core:$versions.litho"
+    compile "com.facebook.litho:litho-widget:$versions.litho"
+    provided "com.facebook.litho:litho-annotations:$versions.litho"
+    annotationProcessor "com.facebook.litho:litho-processor:$versions.litho"
+    compile 'com.facebook.soloader:soloader:0.2.0'
 
     compile group: 'com.squareup.moshi', name: 'moshi', version: versions.moshi
     compile group: 'com.squareup.okhttp3', name: 'okhttp', version: versions.okHttp
